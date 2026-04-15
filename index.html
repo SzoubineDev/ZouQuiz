@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>dark quiz · code & cyber</title>
+  <style>
+    /* ----- RESET & DARK BASE ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0b0e14;
+      --surface: #151a24;
+      --surface-light: #1e2632;
+      --border: #2a3440;
+      --text-primary: #f0f3f8;
+      --text-secondary: #9aa7b9;
+      --accent: #3bdb9a;
+      --accent-glow: rgba(59, 219, 154, 0.2);
+      --wrong: #ff4d6d;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      margin: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      background-image: radial-gradient(circle at 20% 30%, rgba(59, 219, 154, 0.03) 0%, transparent 40%),
+                        radial-gradient(circle at 80% 70%, rgba(59, 219, 154, 0.02) 0%, transparent 50%);
+    }
+
+    .quiz-container {
+      max-width: 720px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      padding: 2.2rem 2rem;
+      box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(59, 219, 154, 0.1) inset;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s ease;
+    }
+
+    /* header area */
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .quiz-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 0%, #c0d4d0 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .highscore-badge {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      background: var(--surface-light);
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .highscore-badge span {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .trophy {
+      filter: drop-shadow(0 0 6px var(--accent));
+    }
+
+    /* progress & counter */
+    .quiz-progress {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      letter-spacing: 0.5px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: var(--surface-light);
+      border-radius: 4px;
+      margin: 0.5rem 0 1.8rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #6ee7b7);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.35s ease;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* question area */
+    .question-text {
+      font-size: 1.8rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 2rem;
+      letter-spacing: -0.01em;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+      margin-bottom: 2.2rem;
+    }
+
+    .option-btn {
+      background: var(--surface-light);
+      border: 1.5px solid var(--border);
+      color: var(--text-primary);
+      padding: 1.1rem 1.5rem;
+      border-radius: 18px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: var(--font-sans);
+      letter-spacing: -0.2px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: #1f2a37;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 18px -6px rgba(0,0,0,0.5);
+    }
+
+    .option-btn.correct {
+      background: rgba(59, 219, 154, 0.18);
+      border-color: var(--accent);
+      color: #d0f0e0;
+    }
+
+    .option-btn.wrong {
+      background: rgba(255, 77, 109, 0.12);
+      border-color: var(--wrong);
+      color: #ffb0bb;
+    }
+
+    .option-btn:disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* action buttons */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.8rem 1.8rem;
+      border-radius: 40px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-mono);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0b0e14;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(59, 219, 154, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #4fe6aa;
+      transform: scale(1.02);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* result screen */
+    .result-screen {
+      text-align: center;
+    }
+
+    .final-score {
+      font-size: 4.5rem;
+      font-weight: 700;
+      margin: 1rem 0 0.5rem;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--accent-glow);
+      font-family: var(--font-mono);
+    }
+
+    .result-message {
+      font-size: 1.3rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    .highscore-notice {
+      background: var(--surface-light);
+      border-radius: 60px;
+      padding: 0.6rem 1.5rem;
+      display: inline-block;
+      margin-bottom: 2rem;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .restart-btn {
+      margin-top: 0.5rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* responsive */
+    @media (max-width: 500px) {
+      body { padding: 0.8rem; align-items: flex-start; }
+      .quiz-container { padding: 1.8rem 1.2rem; border-radius: 24px; }
+      .question-text { font-size: 1.5rem; }
+      .option-btn { padding: 1rem 1.2rem; font-size: 1rem; }
+      .btn { padding: 0.7rem 1.5rem; }
+    }
+  </style>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="quiz-container">
+  <!-- header -->
+  <div class="quiz-header">
+    <div class="quiz-title">ZOUQUIZ</div>
+    <div class="highscore-badge">
+      <span class="trophy">🏆</span> HIGH SCORE <span id="highScoreDisplay">0</span>
+    </div>
+  </div>
+
+  <!-- main quiz area (active) -->
+  <div id="quizArea">
+    <div class="quiz-progress">
+      <span id="questionCounter">Question 1/5</span>
+      <span id="scoreDisplay">Score: 0</span>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+    </div>
+    <div id="question" class="question-text">Loading...</div>
+    <div id="optionsContainer" class="options-grid"></div>
+    <div class="action-bar">
+      <button id="nextBtn" class="btn btn-primary" disabled>Next →</button>
+      <button id="restartBtn" class="btn btn-outline">⟲ Restart</button>
+    </div>
+  </div>
+
+  <!-- result screen (hidden by default) -->
+  <div id="resultArea" class="result-screen hidden">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+    <div style="font-size: 1.2rem; text-transform: uppercase; letter-spacing: 4px; color: var(--text-secondary);">Quiz complete</div>
+    <div class="final-score" id="finalScoreSpan">0</div>
+    <div class="result-message" id="resultMessage"></div>
+    <div id="newHighscoreBadge" class="highscore-notice hidden">✨ NEW HIGH SCORE! ✨</div>
+    <button id="playAgainBtn" class="btn btn-primary restart-btn">Play Again</button>
+    <button id="resetHighscoreBtn" class="btn btn-outline" style="margin-left: 1rem;">Reset High</button>
+  </div>
+</div>
+
+<script>
+  (function(){
+    "use strict";
+
+    // ---------- QUIZ DATA (100 questions) ----------
+    const questions = [
+      // 1-10: HTML & CSS
+      { question: "What does HTML stand for?", options: ["Hyper Text Makeup Language", "HyperText Markup Language", "HighText Machine Language", "Hyper Transfer Markup Language"], correct: 1 },
+      { question: "Which tag is used for the largest heading?", options: ["<h6>", "<head>", "<h1>", "<header>"], correct: 2 },
+      { question: "Which CSS property controls text size?", options: ["font-style", "text-size", "font-size", "size"], correct: 2 },
+      { question: "What is the correct HTML for creating a hyperlink?", options: ["<a url='...'>", "<link>", "<a href='...'>", "<href>"], correct: 2 },
+      { question: "Which property is used to change the background color?", options: ["color", "bgcolor", "background-color", "bg-color"], correct: 2 },
+      { question: "How do you add a comment in CSS?", options: ["// comment", "/* comment */", "<!-- comment -->", "# comment"], correct: 1 },
+      { question: "Which HTML element defines the document title?", options: ["<meta>", "<head>", "<title>", "<header>"], correct: 2 },
+      { question: "What does CSS stand for?", options: ["Creative Style Sheets", "Cascading Style Sheets", "Computer Style Sheets", "Colorful Style Sheets"], correct: 1 },
+      { question: "Which HTML attribute specifies an inline style?", options: ["class", "style", "css", "font"], correct: 1 },
+      { question: "How do you select an element with id 'demo' in CSS?", options: [".demo", "#demo", "demo", "*demo"], correct: 1 },
+
+      // 11-20: JavaScript Basics
+      { question: "Inside which HTML element do we put JavaScript?", options: ["<js>", "<script>", "<javascript>", "<code>"], correct: 1 },
+      { question: "How do you write 'Hello World' in an alert box?", options: ["alertBox('Hello World')", "msg('Hello World')", "alert('Hello World')", "console.log('Hello World')"], correct: 2 },
+      { question: "How do you create a function in JavaScript?", options: ["function myFunction()", "function:myFunction()", "function = myFunction()", "def myFunction()"], correct: 0 },
+      { question: "How do you call a function named 'myFunction'?", options: ["call myFunction()", "myFunction()", "call function myFunction", "execute myFunction"], correct: 1 },
+      { question: "Which operator is used for strict equality?", options: ["=", "==", "===", "!="], correct: 2 },
+      { question: "What will '2' + 2 return?", options: ["4", "22", "NaN", "undefined"], correct: 1 },
+      { question: "What is the correct way to write an array?", options: ["var colors = (1,2,3)", "var colors = [1,2,3]", "var colors = {1,2,3}", "var colors = <1,2,3>"], correct: 1 },
+      { question: "How do you find the length of a string 'hello'?", options: ["'hello'.size", "'hello'.length", "length('hello')", "size('hello')"], correct: 1 },
+      { question: "Which event occurs when the user clicks on an HTML element?", options: ["onmouseover", "onchange", "onclick", "onkeydown"], correct: 2 },
+      { question: "What does 'typeof []' return?", options: ["array", "object", "list", "undefined"], correct: 1 },
+
+      // 21-30: SQL & Databases
+      { question: "What does SQL stand for?", options: ["Structured Question Language", "Strong Query Language", "Structured Query Language", "Simple Query Layout"], correct: 2 },
+      { question: "Which SQL statement extracts data from a database?", options: ["EXTRACT", "SELECT", "GET", "OPEN"], correct: 1 },
+      { question: "Which SQL clause filters records?", options: ["ORDER BY", "WHERE", "GROUP BY", "HAVING"], correct: 1 },
+      { question: "How do you insert a new record into a table?", options: ["INSERT INTO", "ADD RECORD", "INSERT NEW", "CREATE ROW"], correct: 0 },
+      { question: "Which keyword sorts the result-set in ascending order?", options: ["SORT ASC", "ORDER BY", "SORT BY", "GROUP BY"], correct: 1 },
+      { question: "What is a primary key?", options: ["A unique identifier for a row", "The first column", "A foreign key", "An index"], correct: 0 },
+      { question: "Which command deletes a table completely?", options: ["DELETE TABLE", "DROP TABLE", "REMOVE TABLE", "TRUNCATE"], correct: 1 },
+      { question: "What type of JOIN returns all rows when there is a match in either table?", options: ["INNER JOIN", "LEFT JOIN", "FULL OUTER JOIN", "CROSS JOIN"], correct: 2 },
+      { question: "Which function counts the number of rows?", options: ["COUNT()", "SUM()", "TOTAL()", "ROWS()"], correct: 0 },
+      { question: "Which command is used to update existing data?", options: ["MODIFY", "UPDATE", "CHANGE", "ALTER"], correct: 1 },
+
+      // 31-40: Networking & Protocols
+      { question: "What does HTTP stand for?", options: ["HyperText Transfer Protocol", "HighText Transfer Protocol", "Hyper Transfer Text Protocol", "Home Tool Transfer Protocol"], correct: 0 },
+      { question: "Which protocol is used for secure web browsing?", options: ["HTTP", "FTP", "HTTPS", "SMTP"], correct: 2 },
+      { question: "What is the default port for HTTPS?", options: ["80", "443", "22", "8080"], correct: 1 },
+      { question: "Which protocol is used to send email?", options: ["POP3", "IMAP", "SMTP", "HTTP"], correct: 2 },
+      { question: "What does IP stand for?", options: ["Internet Protocol", "Internal Process", "Interconnected Port", "Interface Program"], correct: 0 },
+      { question: "Which device forwards data packets between networks?", options: ["Switch", "Router", "Hub", "Bridge"], correct: 1 },
+      { question: "What does DNS do?", options: ["Encrypts data", "Translates domain names to IP addresses", "Blocks ads", "Speeds up internet"], correct: 1 },
+      { question: "Which protocol is connection-oriented?", options: ["UDP", "TCP", "IP", "ICMP"], correct: 1 },
+      { question: "What is a firewall?", options: ["A hardware device only", "A network security system", "Antivirus software", "A web browser"], correct: 1 },
+      { question: "What does VPN stand for?", options: ["Virtual Private Network", "Very Private Network", "Visual Protocol Network", "Verified Proxy Node"], correct: 0 },
+
+      // 41-50: Cybersecurity Basics
+      { question: "What does CIA stand for in cybersecurity?", options: ["Central Intelligence Agency", "Confidentiality, Integrity, Availability", "Cyber Intelligence Algorithm", "Certified Internet Analyst"], correct: 1 },
+      { question: "What is phishing?", options: ["A type of fishing", "Fraudulent attempt to get sensitive info", "Hacking a server", "Encrypting data"], correct: 1 },
+      { question: "What is ransomware?", options: ["Software that locks data for ransom", "A type of antivirus", "A firewall", "Spyware"], correct: 0 },
+      { question: "What is two-factor authentication?", options: ["Two passwords", "Extra layer of security beyond password", "Biometric only", "A backup code"], correct: 1 },
+      { question: "What is a DDoS attack?", options: ["Data Destruction on Site", "Distributed Denial of Service", "Dual Detection of Security", "Direct Denial of Server"], correct: 1 },
+      { question: "What does 'https' indicate?", options: ["The site is fast", "Encrypted connection", "It's a government site", "No cookies"], correct: 1 },
+      { question: "What is malware?", options: ["Malicious software", "Malfunctioning hardware", "A type of firewall", "Marketing alert"], correct: 0 },
+      { question: "What is social engineering?", options: ["Building social networks", "Manipulating people to reveal info", "Software development", "Network design"], correct: 1 },
+      { question: "Which is a strong password practice?", options: ["Use 'password123'", "Same password everywhere", "Long, complex, unique", "Use your name"], correct: 2 },
+      { question: "What does 'zero-day' vulnerability mean?", options: ["Vulnerability known for 0 days", "No risk", "Already patched", "Low severity"], correct: 0 },
+
+      // 51-60: Linux & Command Line
+      { question: "Which command lists files in a directory?", options: ["dir", "ls", "list", "show"], correct: 1 },
+      { question: "How do you change directories?", options: ["cd", "chdir", "move", "goto"], correct: 0 },
+      { question: "What does 'pwd' do?", options: ["Print working directory", "Password", "Power down", "Process write data"], correct: 0 },
+      { question: "Which command copies files?", options: ["copy", "cp", "clone", "dup"], correct: 1 },
+      { question: "What does 'chmod' do?", options: ["Change module", "Change file permissions", "Check mode", "Compile module"], correct: 1 },
+      { question: "Which command shows running processes?", options: ["ps", "top", "proc", "status"], correct: 0 },
+      { question: "How do you kill a process by PID?", options: ["kill PID", "stop PID", "end PID", "term PID"], correct: 0 },
+      { question: "What does 'grep' do?", options: ["Search text patterns", "Group expressions", "Get repository", "Graph process"], correct: 0 },
+      { question: "Which command displays the end of a file?", options: ["head", "tail", "end", "bottom"], correct: 1 },
+      { question: "What is the superuser command prefix?", options: ["admin", "root", "sudo", "su"], correct: 2 },
+
+      // 61-70: Python
+      { question: "How do you print in Python?", options: ["console.log()", "print()", "echo", "printf()"], correct: 1 },
+      { question: "What is the correct file extension for Python?", options: [".py", ".pyt", ".pt", ".python"], correct: 0 },
+      { question: "How do you create a variable with value 5?", options: ["int x = 5", "x = 5", "var x = 5", "let x = 5"], correct: 1 },
+      { question: "Which data type is mutable?", options: ["tuple", "list", "string", "int"], correct: 1 },
+      { question: "How do you define a function?", options: ["function myFunc():", "def myFunc():", "func myFunc():", "define myFunc():"], correct: 1 },
+      { question: "Which keyword is used for conditional statements?", options: ["if", "when", "case", "switch"], correct: 0 },
+      { question: "How do you start a comment?", options: ["//", "/*", "#", "--"], correct: 2 },
+      { question: "What is the output of 2 ** 3?", options: ["5", "6", "8", "9"], correct: 2 },
+      { question: "Which method adds an element to a list?", options: ["add()", "append()", "insert()", "push()"], correct: 1 },
+      { question: "What does 'len()' do?", options: ["Returns length", "Returns type", "Converts to string", "Creates list"], correct: 0 },
+
+      // 71-80: Java
+      { question: "What is Java?", options: ["Object-oriented language", "Procedural only", "Markup language", "Database"], correct: 0 },
+      { question: "Which keyword is used to create a class?", options: ["class", "Class", "struct", "interface"], correct: 0 },
+      { question: "Which method is the entry point of a Java program?", options: ["start()", "main()", "run()", "init()"], correct: 1 },
+      { question: "How do you create an object in Java?", options: ["new ClassName()", "ClassName()", "create ClassName", "Class::new()"], correct: 0 },
+      { question: "What is inheritance?", options: ["Copying code", "Acquiring properties of another class", "Encapsulation", "Polymorphism"], correct: 1 },
+      { question: "Which access modifier is most restrictive?", options: ["public", "protected", "private", "default"], correct: 2 },
+      { question: "What is an interface?", options: ["A class", "A blueprint of a class", "Abstract type", "Both B and C"], correct: 3 },
+      { question: "What is the Java Virtual Machine?", options: ["Compiler", "Runtime environment", "Text editor", "Debugger"], correct: 1 },
+      { question: "Which collection allows duplicates?", options: ["Set", "List", "Map", "Queue"], correct: 1 },
+      { question: "What does 'final' keyword mean for a variable?", options: ["Cannot be changed", "Can be inherited", "Static", "Private"], correct: 0 },
+
+      // 81-90: AI / ML
+      { question: "What does AI stand for?", options: ["Automated Intelligence", "Artificial Intelligence", "Algorithmic Interface", "Augmented Input"], correct: 1 },
+      { question: "What does ML stand for?", options: ["Machine Language", "Machine Learning", "Markup Language", "Mathematical Logic"], correct: 1 },
+      { question: "What is supervised learning?", options: ["Learning without labels", "Learning with labeled data", "Reinforcement", "Unsupervised"], correct: 1 },
+      { question: "What is a neural network inspired by?", options: ["Human brain", "Computer circuits", "Spider webs", "Tree roots"], correct: 0 },
+      { question: "Which Python library is used for data manipulation?", options: ["NumPy", "Pandas", "Matplotlib", "Scikit-learn"], correct: 1 },
+      { question: "What is 'overfitting'?", options: ["Model too simple", "Model performs well on training but poorly on new data", "Model underperforms", "Perfect model"], correct: 1 },
+      { question: "What is an LLM?", options: ["Large Language Model", "Low Level Module", "Logical Learning Machine", "Lightweight Library Manager"], correct: 0 },
+      { question: "What is 'prompt engineering'?", options: ["Writing efficient code", "Designing inputs for AI models", "Building prompts for users", "Debugging"], correct: 1 },
+      { question: "Which algorithm is used for classification?", options: ["Linear Regression", "K-Means", "Decision Tree", "PCA"], correct: 2 },
+      { question: "What does NLP stand for?", options: ["Natural Language Processing", "Network Layer Protocol", "Neural Logic Programming", "Non-Linear Parameter"], correct: 0 },
+
+      // 91-100: General Tech & Misc
+      { question: "What year was the first iPhone released?", options: ["2005", "2007", "2009", "2010"], correct: 1 },
+      { question: "Who is the founder of Microsoft?", options: ["Steve Jobs", "Bill Gates", "Mark Zuckerberg", "Elon Musk"], correct: 1 },
+      { question: "What does '404' mean?", options: ["Server error", "Page not found", "Unauthorized", "Bad request"], correct: 1 },
+      { question: "Which company developed React?", options: ["Google", "Facebook", "Twitter", "Amazon"], correct: 1 },
+      { question: "What is Git?", options: ["Version control system", "Programming language", "Database", "Web server"], correct: 0 },
+      { question: "What does 'API' stand for?", options: ["Application Programming Interface", "Advanced Protocol Integration", "Automated Program Instruction", "Application Process Interface"], correct: 0 },
+      { question: "Which symbol is used for 'or' in many programming languages?", options: ["&&", "||", "!!", "&"], correct: 1 },
+      { question: "What is a 'bug'?", options: ["An error in code", "A feature", "A virus", "A hardware issue"], correct: 0 },
+      { question: "What does 'UI' stand for?", options: ["User Interface", "Unified Input", "Utility Integration", "User Instruction"], correct: 0 },
+      { question: "What does 'UX' stand for?", options: ["User Experience", "Universal Extension", "Unified Exchange", "Utility Expression"], correct: 0 }
+    ];
+
+    // ---------- DOM ELEMENTS ----------
+    const quizArea = document.getElementById('quizArea');
+    const resultArea = document.getElementById('resultArea');
+    const questionEl = document.getElementById('question');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const questionCounter = document.getElementById('questionCounter');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const progressFill = document.getElementById('progressFill');
+    const highScoreSpan = document.getElementById('highScoreDisplay');
+    const finalScoreSpan = document.getElementById('finalScoreSpan');
+    const resultMessage = document.getElementById('resultMessage');
+    const newHighscoreBadge = document.getElementById('newHighscoreBadge');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const resetHighscoreBtn = document.getElementById('resetHighscoreBtn');
+
+    // ---------- STATE ----------
+    let currentIndex = Math.floor(Math.random() * 100);
+    let score = 0;
+    let answerSelected = false;
+    let selectedOptionIdx = null;
+    let highScore = 0;
+    const totalQuestions = 10;
+    
+    let realQuestion = [];
+    for (let i = 0; i < totalQuestions; i++) {
+      let idx = (currentIndex + i) % questions.length;
+      realQuestion.push(questions[idx]);
+    }
+    let realQuestionIndex = 0;
+
+    // ---------- LOCAL STORAGE ----------
+    function loadHighScore() {
+      const saved = localStorage.getItem('quizHighScore');
+      if (saved !== null) {
+        highScore = parseInt(saved, 10) || 0;
+      } else {
+        highScore = 0;
+      }
+      highScoreSpan.textContent = highScore;
+    }
+
+    function saveHighScore(newScore) {
+      if (newScore > highScore) {
+        highScore = newScore;
+        localStorage.setItem('quizHighScore', highScore);
+        highScoreSpan.textContent = highScore;
+        return true;
+      }
+      return false;
+    }
+
+    function resetHighScore() {
+      highScore = 0;
+      localStorage.setItem('quizHighScore', 0);
+      highScoreSpan.textContent = '0';
+    }
+
+    // ---------- RENDER QUESTION ----------
+    function renderQuestion() {
+      const q = realQuestion[realQuestionIndex];
+      questionEl.textContent = q.question;
+      
+      questionCounter.textContent = `Question ${realQuestionIndex + 1}/${totalQuestions}`;
+      const progressPercent = (realQuestionIndex / totalQuestions) * 100;
+      progressFill.style.width = progressPercent + '%';
+      
+      optionsContainer.innerHTML = '';
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.dataset.index = idx;
+        btn.addEventListener('click', () => handleOptionClick(idx, btn));
+        optionsContainer.appendChild(btn);
+      });
+
+      answerSelected = false;
+      selectedOptionIdx = null;
+      nextBtn.disabled = true;
+      
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.classList.remove('correct', 'wrong');
+        btn.disabled = false;
+      });
+
+      scoreDisplay.textContent = `Score: ${score}`;
+    }
+
+    // ---------- HANDLE ANSWER ----------
+    function handleOptionClick(clickedIdx, btnElement) {
+      if (answerSelected) return;
+      
+      const q = realQuestion[realQuestionIndex];
+      const isCorrect = (clickedIdx === q.correct);
+      
+      answerSelected = true;
+      selectedOptionIdx = clickedIdx;
+      
+      const allOptions = document.querySelectorAll('.option-btn');
+      allOptions.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === q.correct) {
+          btn.classList.add('correct');
+        } else if (idx === clickedIdx && !isCorrect) {
+          btn.classList.add('wrong');
+        }
+      });
+      
+      if (isCorrect) {
+        score++;
+        scoreDisplay.textContent = `Score: ${score}`;
+      }
+      
+      nextBtn.disabled = false;
+    }
+
+    // ---------- NEXT QUESTION OR FINISH ----------
+    function handleNext() {
+      if (!answerSelected) return;
+      
+      if (realQuestionIndex < totalQuestions - 1) {
+        realQuestionIndex++;
+        renderQuestion();
+      } else {
+        finishQuiz();
+      }
+    }
+
+    // ---------- FINISH QUIZ ----------
+    function finishQuiz() {
+      progressFill.style.width = '100%';
+      
+      quizArea.classList.add('hidden');
+      resultArea.classList.remove('hidden');
+      
+      finalScoreSpan.textContent = `${score}/${totalQuestions}`;
+      
+      const percentage = (score / totalQuestions) * 100;
+      let message = '';
+      if (percentage >= 80) message = 'Excellent! You really know your stuff.';
+      else if (percentage >= 50) message = 'Good job! Keep learning.';
+      else message = 'Nice try! Practice makes perfect.';
+      resultMessage.textContent = message;
+      
+      const isNewHigh = saveHighScore(score);
+      if (isNewHigh && score > 0) {
+        newHighscoreBadge.classList.remove('hidden');
+      } else {
+        newHighscoreBadge.classList.add('hidden');
+      }
+      
+      highScoreSpan.textContent = highScore;
+    }
+
+    // ---------- RESTART / RESET QUIZ ----------
+    function restartQuiz() {
+      currentIndex = Math.floor(Math.random() * 100);
+      score = 0;
+      answerSelected = false;
+      realQuestionIndex = 0;
+      
+      realQuestion = [];
+      for (let i = 0; i < totalQuestions; i++) {
+        let idx = (currentIndex + i) % questions.length;
+        realQuestion.push(questions[idx]);
+      }
+      
+      quizArea.classList.remove('hidden');
+      resultArea.classList.add('hidden');
+      
+      progressFill.style.width = '0%';
+      
+      loadHighScore();
+      
+      renderQuestion();
+      
+      nextBtn.disabled = true;
+      scoreDisplay.textContent = `Score: 0`;
+    }
+
+    // ---------- EVENT LISTENERS ----------
+    nextBtn.addEventListener('click', handleNext);
+    
+    restartBtn.addEventListener('click', () => {
+      if (confirm('Restart quiz? Your current progress will be lost.')) {
+        restartQuiz();
+      }
+    });
+    
+    playAgainBtn.addEventListener('click', () => {
+      restartQuiz();
+    });
+    
+    resetHighscoreBtn.addEventListener('click', () => {
+      if (confirm('Reset high score to 0?')) {
+        resetHighScore();
+        if (!resultArea.classList.contains('hidden')) {
+          newHighscoreBadge.classList.add('hidden');
+        }
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !nextBtn.disabled && !quizArea.classList.contains('hidden')) {
+        handleNext();
+      }
+    });
+
+    // ---------- INITIALIZE ----------
+    loadHighScore();
+    renderQuestion();
+  })();
+</script>
+</body>
+</html>
